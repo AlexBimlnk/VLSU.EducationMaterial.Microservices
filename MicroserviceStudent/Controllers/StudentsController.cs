@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MicroserviceStudent;
 using MicroserviceStudent.Models;
+using System.Text.Json;
 
 namespace MicroserviceStudent.Controllers
 {
@@ -49,6 +50,27 @@ namespace MicroserviceStudent.Controllers
 
             return student;
         }
+
+        [HttpGet("course/{studentId}")]
+        public async Task<string> GetCourse(long studentId)
+        {
+            var actionResult = await GetStudent(studentId);
+            var student = actionResult.Value;
+            HttpClientHandler clientHandler = new HttpClientHandler();
+            clientHandler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
+            using (HttpClient client = new HttpClient(clientHandler))
+            {
+                HttpResponseMessage response = await client.GetAsync($"https://localhost:7105/api/course/{student.CourseId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    object course = await JsonSerializer.DeserializeAsync<object>(
+                        await response.Content.ReadAsStreamAsync());
+                    return course.ToString();
+                }
+            }
+            return null;
+        }
+
 
         // PUT: api/Students/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
